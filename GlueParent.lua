@@ -40,17 +40,17 @@ CharModelGlowInfo["DWARF"] = 2;
 CharModelGlowInfo["CHARACTERSELECT"] = 2;
 
 GlueAmbienceTracks = { };
-GlueAmbienceTracks["HUMAN"] = "GlueScreenHuman";
-GlueAmbienceTracks["ORC"] = "GlueScreenOrcTroll";
-GlueAmbienceTracks["DWARF"] = "GlueScreenDwarfGnome";
-GlueAmbienceTracks["TAUREN"] = "GlueScreenTauren";
-GlueAmbienceTracks["SCOURGE"] = "GlueScreenUndead";
-GlueAmbienceTracks["NIGHTELF"] = "GlueScreenNightElf";
-GlueAmbienceTracks["DRAENEI"] = "GlueScreenDraenei";
-GlueAmbienceTracks["BLOODELF"] = "GlueScreenBloodElf";
-GlueAmbienceTracks["DARKPORTAL"] = "GlueScreenIntro";
-GlueAmbienceTracks["DEATHKNIGHT"] = "GlueScreenIntro";
-GlueAmbienceTracks["CHARACTERSELECT"] = "GlueScreenIntro";
+GlueAmbienceTracks["HUMAN"] = "GlueScreenHuman";		--人类		后面的是音频文件名称
+GlueAmbienceTracks["ORC"] = "GlueScreenOrcTroll";		--兽人
+GlueAmbienceTracks["DWARF"] = "GlueScreenDwarfGnome";	--矮人/侏儒
+GlueAmbienceTracks["TAUREN"] = "GlueScreenTauren";		--牛头人
+GlueAmbienceTracks["SCOURGE"] = "GlueScreenUndead";		--亡灵
+GlueAmbienceTracks["NIGHTELF"] = "GlueScreenNightElf";	--暗夜精灵
+GlueAmbienceTracks["DRAENEI"] = "GlueScreenDraenei";	--德莱尼
+GlueAmbienceTracks["BLOODELF"] = "GlueScreenBloodElf";	--血精灵
+GlueAmbienceTracks["DARKPORTAL"] = "GlueScreenIntro";	--暗黑传送门
+GlueAmbienceTracks["DEATHKNIGHT"] = "GlueScreenIntro";	--死亡骑士
+GlueAmbienceTracks["CHARACTERSELECT"] = "GlueScreenIntro";--角色选择界面
 
 -- RaceLights[] duplicates the 3.2.2 color values in the models. Henceforth, the models no longer contain directional lights
 RaceLights = {
@@ -133,29 +133,31 @@ SEX_FEMALE = 3;
 
 
 function SetGlueScreen(name)
+	_G["CharaCustomTexFrameText1"]:SetText("啊啊啊"..name);
 	local newFrame;
-	for index, value in pairs(GlueScreenInfo) do
+	for index, value in pairs(GlueScreenInfo) do	-- 遍历 GlueScreenInfo 表格中的每个元素
 		local frame = _G[value];
 		if ( frame ) then
 			frame:Hide();
-			if ( index == name ) then
-				newFrame = frame;
+			if ( index == name ) then	-- 如果框架存在，则隐藏它
+				newFrame = frame;		-- 如果当前遍历到的框架的名称与参数name相同，则将newFrame设置为该框架
 			end
 		end
 	end
 	
 	if ( newFrame ) then
-		newFrame:Show();
+		newFrame:Show();				-- 显示newFrame
 		SetCurrentScreen(name);
-		SetCurrentGlueScreenName(name);
+		SetCurrentGlueScreenName(name);	-- 将当前的屏幕和用户界面名称设置为传递给函数的参数name
 		if ( name == "credits" ) then
 			PlayCreditsMusic( GlueCreditsSoundKits[CreditsFrame.creditsType] );
 			StopGlueAmbience();
-		elseif ( name ~= "movie" ) then
+		elseif ( name ~= "movie" ) then	-- 如果参数name是开发人员制作的片头或者片尾，则播放相应的音乐并关闭背景音效
 			PlayGlueMusic(CurrentGlueMusic);
 			--PlayMusic("Sound\\Music\\GlueScreenMusic\\AccLeiTo(Ashenvale).mp3"); 
 			if (name == "login") then
 				--PlayGlueAmbience(GlueAmbienceTracks["DARKPORTAL"], 4.0);
+				-- 否则，如果参数name不是movie，则播放背景音乐和音效。如果参数name是login，则播放特定的音效
 			end
 		end
 	end
@@ -381,42 +383,48 @@ end
 
 -- Function to set the background model for character select and create screens
 function SetBackgroundModel(model, name)
-
-	if ( name== nil or name == "" ) then
+	if (name == nil or name == "") then
 		name = "Orc";
 	end
 
 	local nameupper = strupper(name);
 
-    local path = "Interface\\Glues\\Models\\UI_"..name.."\\UI_"..name..".m2";
+	local path = "Interface\\Glues\\Models\\UI_" .. name .. "\\UI_" .. name .. ".m2";
 
-	if ( model == CharacterCreate ) then
+	if (model == CharacterCreate) then
 		SetCharCustomizeBackground(path);
 	else
 		SetCharSelectBackground(path);
 	end
 
-	if not(string.find(path, "ZOOM")) then
+	if not (string.find(path, "ZOOM")) then
 		if GlueAmbienceTracks[nameupper] then
 			PlayGlueAmbience(GlueAmbienceTracks[nameupper], 4.0);
 		end
 	else
 		nameupper = string.gsub(nameupper, "_ZOOM", "")
 	end
-    local nameupper = strupper(name);
-    local path = "Interface\\Glues\\Models\\UI_"..name.."\\UI_"..name..".m2";
-	if ( model == CharacterCreate ) then
+	local nameupper = strupper(name);
+	--local path = "Interface\\Glues\\Models\\UI_"..name.."\\UI_"..name..".m2";
+	--local path = "Interface\\Glues\\Models\\UI_"..name.."\\UI_"..name..".m2";	--根据种族选择背景
+
+	if (model == CharacterCreate) then
 		if (nameupper == "ORC") then
-			SetCharCustomizeBackground("Interface\\Glues\\Models\\UI_HORDE\\UI_HORDE.m2")			--部落角色创建场景
+			SetCharCustomizeBackground("Interface\\Glues\\Models\\UI_HORDE\\UI_HORDE.m2") --部落角色创建场景
+			_G["CharaCustomTexFrameText1"]:SetText("啊啊啊1 + " .. path);
 		elseif (nameupper == "HUMAN") then
-			SetCharCustomizeBackground("Interface\\Glues\\Models\\UI_HORDE\\UI_HORDE.m2")		--联盟角色创建场景
+			SetCharCustomizeBackground("Interface\\Glues\\Models\\UI_HORDE\\UI_HORDE.m2") --联盟角色创建场景
+			_G["CharaCustomTexFrameText1"]:SetText("啊啊啊2 + " .. path);
 		else
 			SetCharCustomizeBackground(path);
+			_G["CharaCustomTexFrameText1"]:SetText("啊啊啊3 + " .. path);
 		end
 	else
-		SetCharSelectBackground(path);
+		SetCharSelectBackground("Interface\\Glues\\Models\\UI_HORDE\\UI_HORDE.m2") --角色选择界面背景
+		--SetCharSelectBackground(path);
+		_G["CharaCustomTexFrameText1"]:SetText("啊啊啊4 + " .. path);
 	end
-	PlayGlueAmbience(GlueAmbienceTracks[nameupper], 4.0);
+	--PlayGlueAmbience(GlueAmbienceTracks[nameupper], 4.0);
 	SetLighting(model, nameupper)
 end
 
