@@ -92,7 +92,7 @@ BANNER_DEFAULT_TEXTURE_COORDS = {0.109375, 0.890625, 0.201171875, 0.80078125};
 BANNER_DEFAULT_SIZE = {200, 308};
 
 CHAR_CUSTOMIZE_HAIR_COLOR = 4;
-
+local selectedRaceInfo = {}
 
 --新增函数
 function CustomSliderOnUpdate(self)
@@ -157,7 +157,7 @@ end
 
 
 --角色创建界面加载时执行的函数。
-function CharacterCreate_OnLoad(self)
+function CharacterCreate_OnLoad(self)	
 	self:RegisterEvent("RANDOM_CHARACTER_NAME_RESULT");	-- 随机生成角色名事件
 	self:RegisterEvent("GLUE_UPDATE_EXPANSION_LEVEL");	-- 游戏扩展等级更新事件
 
@@ -276,6 +276,7 @@ function CharacterCreate_OnShow()
 		button:Hide();
 		--button:SetScale(0.8)
 		SetButtonDesaturated(button, false)
+		--CharacterCreateEnumerateRaces()
 	end
 
 	for i=1, MAX_RACES, 1 do
@@ -328,6 +329,8 @@ function CharacterCreate_OnShow()
 	CharacterChangeFixup();
  	-- 最后设置摄像头。
 	--SetFaceCustomizeCamera(false);
+
+	
 end
 
 --角色创建界面隐藏时执行的函数。
@@ -349,10 +352,10 @@ end
 function CharacterCreate_OnEvent(event, arg1, arg2, arg3)
 	if ( event == "RANDOM_CHARACTER_NAME_RESULT" ) then
 		if ( arg1 == 0 ) then
-			-- Failed.  Generate a random name locally.
+			-- Failed.  Generate a random name locally. 失败。在本地生成一个随机名称。
 			CharacterCreateNameEdit:SetText(GenerateRandomName());
 		else
-			-- Succeeded.  Use what the server sent.
+			-- Succeeded.  Use what the server sent. 成功使用服务器发送的内容。
 			CharacterCreateNameEdit:SetText(arg2);
 		end
 		CharacterCreateRandomName:Enable();
@@ -396,45 +399,70 @@ function CharacterCreateFrame_OnUpdate(self, elapsed)
 end
 
 -- 枚举所有可选种族的函数
-function CharacterCreateEnumerateRaces(...)
-    -- 解析参数
-    local races = {...}
-    local numRaces = #races / 3
+function CharacterCreateEnumerateRaces(...)	
+   CharacterCreate.numRaces = select("#", ...)/3;
+	if ( CharacterCreate.numRaces > MAX_RACES ) then
+		message("Too many races!  Update MAX_RACES");
+		return;
+	end
+	local index = 1;
+	local button;
+	local gender;
+	local selectedSex = GetSelectedSex();
+	if ( selectedSex == SEX_MALE ) then
+		gender = "MALE";
+	else
+		gender = "FEMALE";
+	end
+	for i=1, select("#", ...), 3 do
+		local name = select(i, ...);
+		local unlocalizedname = strupper(select(i+1, ...))
 
-    -- 检查是否超过最大种族数
-    if numRaces > MAX_RACES then
-        message("Too many races! Update MAX_RACES")
-        return
-    end
-
-    -- 初始化变量
-    local gender = GetSelectedSex() == SEX_MALE and "MALE" or "FEMALE"
-    local index = 1
-
-    -- 遍历所有种族
-    for i = 1, numRaces do
-        -- 获取种族信息
-        local name = races[(i - 1) * 3 + 1]
-        local unlocalizedname = string.upper(races[(i - 1) * 3 + 2])
-        local enabled = races[(i - 1) * 3 + 3] == 1
-
-        -- 设置按钮样式和信息
-        local button = _G["CharCreateRaceButton" .. index]
+		 -- 设置按钮样式和信息
+        button = _G["CharCreateRaceButton" .. index]
         button:SetNormalTexture("Interface\\Glues\\CHARACTERCREATE\\custom\\" .. gender .. "-" .. index)
         button:SetPushedTexture("Interface\\Glues\\CHARACTERCREATE\\custom\\" .. gender .. "-" .. index)
         button.nameFrame.text:SetText(name)
         button.name = name
+		if ( not button  ) then
+			return;
+		end
 
-        -- if enabled then
-        --     SetButtonDesaturated(button)
-        --     button.tooltip = "|cffFFFFFF" .. name .. "\n\n" .. GetFlavorText("RACE_INFO_" .. unlocalizedname, gender) .. "\n\n" .. table.concat(GetAbilityTexts(unlocalizedname), "\n\n")
-        -- else
-        --     SetButtonDesaturated(button, 1)
-        --     local disabledReason = _G[unlocalizedname .. "_DISABLED"]
-        --     button.tooltip = "|cff808080" .. name .. "\n\n" .. (disabledReason or "")
-        -- end
+		button.nameFrame.text:SetText(name);
+		if ( select(i+2, ...) == 1 ) then
+			button:Enable();
+			SetButtonDesaturated(button);
+			button.name = name;
+			button.tooltip = name;
+			
+		else
+			button:Disable();
+			SetButtonDesaturated(button, 1);
+			button.name = name;
+			local disabledReason = _G[strupper(select(i+1, ...).."_".."DISABLED")];
+			if (disabledReason) then
+				button.tooltip = name .. "|n" .. disabledReason;
+				_G["CharaRaceDescriptionFrameText1"]:SetText(button.tooltip);
+			else
+				button.tooltip = nil;
+			end
+		end
 
-        -- 设置按钮高亮材质
+		local abilityIndex = 1;
+		local tempText = _G["ABILITY_INFO_"..unlocalizedname..abilityIndex];
+		local AbilityText = "";
+		while ( tempText ) do
+			AbilityText = AbilityText..tempText.."\n\n";
+			abilityIndex = abilityIndex + 1;
+			tempText = _G["ABILITY_INFO_"..unlocalizedname..abilityIndex];
+		end
+
+		local Text = GetFlavorText("RACE_INFO_"..unlocalizedname, gender)
+		button.tooltip = "|r"..Text
+		button.tooltip = button.tooltip.."\n\n|cffFFFFFF"..AbilityText
+		CharaRaceDescriptionFrameText1:SetText(button.tooltip)
+
+		-- 设置按钮高亮材质
         local highlightTexture = "Interface\\Glues\\CHARACTERCREATE\\custom\\Highlight" .. (enabled and gender or (gender == "MALE" and "FEMALE" or "MALE"))
         local border = _G["CharCreateRaceButton" .. index .. "Border"]
 
@@ -458,13 +486,11 @@ function CharacterCreateEnumerateRaces(...)
             },
         })
 
-        index = index + 1
-    end
-
-    -- 隐藏多余的种族按钮
-    for i = numRaces + 1, MAX_RACES do
-        _G["CharCreateRaceButton" .. i]:Hide()
-    end
+		index = index + 1;
+	end
+	for i=CharacterCreate.numRaces + 1, MAX_RACES, 1 do
+		_G["CharCreateRaceButton"..i]:Hide();
+	end
 end
 
 -- 获取种族能力文本
@@ -974,6 +1000,7 @@ end
 
 --角色种族选择时执行的函数。
 function CharacterRace_OnClick(self, id, forceSelect)
+	_G["CharaRaceDescriptionFrameText1"]:SetText("self.tooltip")
 	if( self:IsEnabled() ) then
 		PlaySound("gsCharacterCreationClass");
 		if ( GetSelectedRace() ~= id or forceSelect ) then
