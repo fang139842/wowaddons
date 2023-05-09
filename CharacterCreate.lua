@@ -397,72 +397,74 @@ end
 
 -- 枚举所有可选种族的函数
 function CharacterCreateEnumerateRaces(...)
-   CharacterCreate.numRaces = select("#", ...)/3;
-	if ( CharacterCreate.numRaces > MAX_RACES ) then
-		message("Too many races!  Update MAX_RACES");
-		return;
-	end
-	local coords;
-	local index = 1;
-	local button;
-	local gender;
-	local selectedSex = GetSelectedSex();
-	if ( selectedSex == SEX_MALE ) then
-		gender = "MALE";
-	else
-		gender = "FEMALE";
-	end
-	for i=1, select("#", ...), 3 do
-		local name = select(i, ...);
-		local unlocalizedname = strupper(select(i+1, ...))
+    -- 解析参数
+    local races = {...}
+    local numRaces = #races / 3
 
-		 -- 设置按钮样式和信息
+    -- 检查是否超过最大种族数
+    if numRaces > MAX_RACES then
+        message("Too many races! Update MAX_RACES")
+        return
+    end
+
+    -- 初始化变量
+    local gender = GetSelectedSex() == SEX_MALE and "MALE" or "FEMALE"
+    local index = 1
+
+    -- 遍历所有种族
+    for i = 1, numRaces do
+        -- 获取种族信息
+        local name = races[(i - 1) * 3 + 1]
+        local unlocalizedname = string.upper(races[(i - 1) * 3 + 2])
+        local enabled = races[(i - 1) * 3 + 3] == 1
+
+        -- 设置按钮样式和信息
         local button = _G["CharCreateRaceButton" .. index]
         button:SetNormalTexture("Interface\\Glues\\CHARACTERCREATE\\custom\\" .. gender .. "-" .. index)
         button:SetPushedTexture("Interface\\Glues\\CHARACTERCREATE\\custom\\" .. gender .. "-" .. index)
         button.nameFrame.text:SetText(name)
         button.name = name
-		if ( not button  ) then
-			return;
-		end
 
-		button.nameFrame.text:SetText(name);
-		if ( select(i+2, ...) == 1 ) then
-			button:Enable();
-			SetButtonDesaturated(button);
-			button.name = name;
-			button.tooltip = name;
-		else
-			button:Disable();
-			SetButtonDesaturated(button, 1);
-			button.name = name;
-			local disabledReason = _G[strupper(select(i+1, ...).."_".."DISABLED")];
-			if ( disabledReason ) then
-				button.tooltip = name.."|n"..disabledReason;
-			else
-				button.tooltip = nil;
-			end
-		end
+        -- if enabled then
+        --     SetButtonDesaturated(button)
+        --     button.tooltip = "|cffFFFFFF" .. name .. "\n\n" .. GetFlavorText("RACE_INFO_" .. unlocalizedname, gender) .. "\n\n" .. table.concat(GetAbilityTexts(unlocalizedname), "\n\n")
+        -- else
+        --     SetButtonDesaturated(button, 1)
+        --     local disabledReason = _G[unlocalizedname .. "_DISABLED"]
+        --     button.tooltip = "|cff808080" .. name .. "\n\n" .. (disabledReason or "")
+        -- end
 
-		local abilityIndex = 1;
-		local tempText = _G["ABILITY_INFO_"..unlocalizedname..abilityIndex];
-		abilityText = "";
-		while ( tempText ) do
-			abilityText = abilityText..tempText.."\n\n";
-			abilityIndex = abilityIndex + 1;
-			tempText = _G["ABILITY_INFO_"..unlocalizedname..abilityIndex];
-		end
+        -- 设置按钮高亮材质
+        local highlightTexture = "Interface\\Glues\\CHARACTERCREATE\\custom\\Highlight" .. (enabled and gender or (gender == "MALE" and "FEMALE" or "MALE"))
+        local border = _G["CharCreateRaceButton" .. index .. "Border"]
 
-		text = GetFlavorText("RACE_INFO_"..unlocalizedname, gender)
-		button.tooltip = "|r"..text
-		button.tooltip = button.tooltip.."\n\n|cffFFFFFF"..abilityText
+        if not border then
+            border = CreateFrame("Frame", "CharCreateRaceButton" .. index .. "Border", button)
+            border:SetPoint("TOPLEFT", button, "TOPLEFT")
+            border:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT")
+        end
 
+        border:SetBackdrop({
+            bgFile = highlightTexture,
+            edgeFile = "",
+            tile = false,
+            tileSize = 0,
+            edgeSize = 0,
+            insets = {
+                left = 0,
+                right = 0,
+                top = 0,
+                bottom = 0,
+            },
+        })
 
-		index = index + 1;
-	end
-	for i=CharacterCreate.numRaces + 1, MAX_RACES, 1 do
-		_G["CharCreateRaceButton"..i]:Hide();
-	end
+        index = index + 1
+    end
+
+    -- 隐藏多余的种族按钮
+    for i = numRaces + 1, MAX_RACES do
+        _G["CharCreateRaceButton" .. i]:Hide()
+    end
 end
 
 -- 获取种族能力文本
